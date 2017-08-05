@@ -930,3 +930,318 @@ function sym(args) {
   }
   return res;
 }
+//============================================================================================
+/*Exact Change
+Design a cash register drawer function checkCashRegister() that accepts 
+purchase price as the first argument (price), payment as the second argument
+ (cash), and cash-in-drawer (cid) as the third argument.
+
+cid is a 2D array listing available currency.
+
+Return the string "Insufficient Funds" if cash-in-drawer is less than the change due.
+ Return the string "Closed" if cash-in-drawer is equal to the change due.
+
+Otherwise, return change in coin and bills, sorted in highest to lowest order.
+
+Remember to use Read-Search-Ask if you get stuck. Try to pair program. Write your own code.
+
+Here are some helpful links:
+
+Global Object
+checkCashRegister(3.26, 100.00, [["PENNY", 1.01], ["NICKEL", 2.05], ["DIME", 3.10], ["QUARTER", 4.25], ["ONE", 90.00], ["FIVE", 55.00], ["TEN", 20.00], ["TWENTY", 60.00], ["ONE HUNDRED", 100.00]]) should return [["TWENTY", 60.00], ["TEN", 20.00], ["FIVE", 15.00], ["ONE", 1.00], ["QUARTER", 0.50], ["DIME", 0.20], ["PENNY", 0.04]].
+checkCashRegister(19.50, 20.00, [["PENNY", 0.01], ["NICKEL", 0], ["DIME", 0], ["QUARTER", 0], ["ONE", 0], ["FIVE", 0], ["TEN", 0], ["TWENTY", 0], ["ONE HUNDRED", 0]]) should return "Insufficient Funds".
+checkCashRegister(19.50, 20.00, [["PENNY", 0.01], ["NICKEL", 0], ["DIME", 0], ["QUARTER", 0], ["ONE", 1.00], ["FIVE", 0], ["TEN", 0], ["TWENTY", 0], ["ONE HUNDRED", 0]]) should return "Insufficient Funds".
+checkCashRegister(19.50, 20.00, [["PENNY", 0.50], ["NICKEL", 0], ["DIME", 0], ["QUARTER", 0], ["ONE", 0], ["FIVE", 0], ["TEN", 0], ["TWENTY", 0], ["ONE HUNDRED", 0]]) should return "Closed".
+
+*/
+// Create an object which hold the denominations and their values
+var denom = [
+  { name: 'ONE HUNDRED', val: 100.00},
+  { name: 'TWENTY', val: 20.00},
+  { name: 'TEN', val: 10.00},
+  { name: 'FIVE', val: 5.00},
+  { name: 'ONE', val: 1.00},
+  { name: 'QUARTER', val: 0.25},
+  { name: 'DIME', val: 0.10},
+  { name: 'NICKEL', val: 0.05},
+  { name: 'PENNY', val: 0.01}
+];
+
+function checkCashRegister(price, cash, cid) {
+  var change = cash - price;
+
+  // Transform CID array into drawer object
+  var register = cid.reduce(function(acc, curr) {
+    acc.total += curr[1];
+    acc[curr[0]] = curr[1];
+    return acc;
+  }, {total: 0});
+
+  // Handle exact change
+  if (register.total === change) {
+    return 'Closed';
+  }
+
+  // Handle obvious insufficent funds
+  if (register.total < change) {
+    return 'Insufficient Funds';
+  }
+
+  // Loop through the denomination array
+  var change_arr = denom.reduce(function(acc, curr) {
+    var value = 0;
+    // While there is still money of this type in the drawer
+    // And while the denomination is larger than the change reminaing
+    while (register[curr.name] > 0 && change >= curr.val) {
+      change -= curr.val;
+      register[curr.name] -= curr.val;
+      value += curr.val;
+
+      // Round change to the nearest hundreth deals with precision errors
+      change = Math.round(change * 100) / 100;
+    }
+    // Add this denomination to the output only if any was used.
+    if (value > 0) {
+        acc.push([ curr.name, value ]);
+    }
+    return acc; // Return the current Change Array
+  }, []); // Initial value of empty array for reduce
+
+  // If there are no elements in change_arr or we have leftover change, return
+  // the string "Insufficient Funds"
+  if (change_arr.length < 1 || change > 0) {
+    return "Insufficient Funds";
+  }
+
+  // Here is your change, ma'am.
+  return change_arr;
+}
+//======================================================================================
+/*Inventory Update
+Compare and update the inventory stored in a 2D array against a second 2D array of a 
+fresh delivery. Update the current existing inventory item quantities (in arr1). If an
+ item cannot be found, add the new item and quantity into the inventory array. 
+ The returned inventory array should be in alphabetical order by item.
+
+Remember to use Read-Search-Ask if you get stuck. Try to pair program. Write your own code.
+
+Here are some helpful links:
+
+Global Array Object
+The function updateInventory should return an array.
+updateInventory([[21, "Bowling Ball"], [2, "Dirty Sock"], [1, "Hair Pin"], [5, "Microphone"]], [[2, "Hair Pin"], [3, "Half-Eaten Apple"], [67, "Bowling Ball"], [7, "Toothpaste"]]).length should return an array with a length of 6.
+updateInventory([[21, "Bowling Ball"], [2, "Dirty Sock"], [1, "Hair Pin"], [5, "Microphone"]], [[2, "Hair Pin"], [3, "Half-Eaten Apple"], [67, "Bowling Ball"], [7, "Toothpaste"]]) should return [[88, "Bowling Ball"], [2, "Dirty Sock"], [3, "Hair Pin"], [3, "Half-Eaten Apple"], [5, "Microphone"], [7, "Toothpaste"]].
+updateInventory([[21, "Bowling Ball"], [2, "Dirty Sock"], [1, "Hair Pin"], [5, "Microphone"]], []) should return [[21, "Bowling Ball"], [2, "Dirty Sock"], [1, "Hair Pin"], [5, "Microphone"]].
+updateInventory([], [[2, "Hair Pin"], [3, "Half-Eaten Apple"], [67, "Bowling Ball"], [7, "Toothpaste"]]) should return [[67, "Bowling Ball"], [2, "Hair Pin"], [3, "Half-Eaten Apple"], [7, "Toothpaste"]].
+updateInventory([[0, "Bowling Ball"], [0, "Dirty Sock"], [0, "Hair Pin"], [0, "Microphone"]], [[1, "Hair Pin"], [1, "Half-Eaten Apple"], [1, "Bowling Ball"], [1, "Toothpaste"]]) should return [[1, "Bowling Ball"], [0, "Dirty Sock"], [1, "Hair Pin"], [1, "Half-Eaten Apple"], [0, "Microphone"], [1, "Toothpaste"]].
+*/
+
+function updateInventory(arr1, arr2) {
+  //concatenate the argument arrays
+  arr1 = arr1.concat(arr2);
+  
+  //sort the array by the item names
+  arr1.sort(function(a, b){
+    return a[1] > b[1];
+  })
+  
+  //Set up a loop to go through each array, starting from the end.  Note you have to end when i is 1.
+  for (var i = arr1.length - 1; i >= 1; i--){
+    //check to see if each name matches the one ahead of it
+    if (arr1[i][1] === arr1[i-1][1]){
+      //if you find a match, add the numbers
+      arr1[i-1][0] += arr1[i][0];
+      // then splice out the duplicate
+      arr1.splice(i, 1);
+    }
+  }
+  return arr1
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//==========================================================================================
+/*No repeats please
+Return the number of total permutations of the provided string 
+that don't have repeated consecutive letters. Assume that all 
+characters in the provided string are each unique.
+
+For example, aab should return 2 because it has 6 total 
+permutations (aab, aab, aba, aba, baa, baa), but only 2 of 
+them (aba and aba) don't have the same letter (in this case a) repeating.
+
+Remember to use Read-Search-Ask if you get stuck. 
+Try to pair program. Write your own code.
+
+Here are some helpful links:
+
+Permutations
+RegExp
+permAlone("aab") should return a number.
+permAlone("aab") should return 2.
+permAlone("aaa") should return 0.
+permAlone("aabb") should return 8.
+permAlone("abcdefa") should return 3600.
+permAlone("abfdefa") should return 2640.
+permAlone("zzzzzzzz") should return 0.
+permAlone("a") should return 1.
+permAlone("aaab") should return 0.
+permAlone("aaabb") should return 12.
+
+*/
+function permAlone(str) {
+
+  // Create a regex to match repeated consecutive characters.
+  var regex = /(.)\1+/g;
+
+  // Split the string into an array of characters.
+  var arr = str.split('');
+  var permutations = [];
+  var tmp;
+
+  // Return 0 if str contains same character.
+  if (str.match(regex) !== null && str.match(regex)[0] === str) return 0;
+
+  // Function to swap variables' content.
+  function swap(index1, index2) {
+    tmp = arr[index1];
+    arr[index1] = arr[index2];
+    arr[index2] = tmp;
+  }
+
+  // Generate arrays of permutations using the algorithm.
+  function generate(int) {
+    if (int === 1) {
+      // Make sure to join the characters as we create  the permutation arrays
+      permutations.push(arr.join(''));
+    } else {
+      for (var i = 0; i != int; ++i) {
+        generate(int - 1);
+        swap(int % 2 ? 0 : i, int - 1);
+      }
+    }
+  }
+
+  generate(arr.length);
+
+  // Filter the array of repeated permutations.
+  var filtered = permutations.filter(function(string) {
+    return !string.match(regex);
+  });
+
+  // Return how many have no repetitions.
+  return filtered.length;
+}
+//============================================================
+
+/*
+
+Fill in the object constructor with the following methods below:
+
+getFirstName()
+getLastName()
+getFullName()
+setFirstName(first)
+setLastName(last)
+setFullName(firstAndLast)
+*/
+var Person = function(firstAndLast) {
+  var fullName = firstAndLast;
+
+  this.getFirstName = function() {
+    return fullName.split(" ")[0];
+  };
+
+  this.getLastName = function() {
+    return fullName.split(" ")[1];
+  };
+
+  this.getFullName = function() {
+    return fullName;
+  };
+
+  this.setFirstName = function(name) {
+    fullName = name + " " + fullName.split(" ")[1];
+  };
+
+  this.setLastName = function(name) {
+    fullName = fullName.split(" ")[0] + " " + name;
+  };
+
+  this.setFullName = function(name) {
+    fullName = name;
+  };
+};
+
+//===================================================================
+/*
+Pairwise
+Given an array arr, find element pairs whose sum equal the second argument arg and
+
+ return the sum of their indices.
+
+If multiple pairs are possible that have the same numeric elements but 
+different indices, return the smallest sum of indices. Once an element has
+ been used, it cannot be reused to pair with another.
+
+For example pairwise([7, 9, 11, 13, 15], 20) returns 6. The pairs that 
+sum to 20 are [7, 13] and [9, 11]. We can then write out the array with their indices and values.
+
+Index	0	1	2	3	4
+Value	7	9	11	13	15
+Below we'll take their corresponding indices and add them.
+
+7 + 13 = 20 → Indices 0 + 3 = 3
+9 + 11 = 20 → Indices 1 + 2 = 3
+3 + 3 = 6 → Return 6
+
+pairwise([1, 4, 2, 3, 0, 5], 7) should return 11.
+pairwise([1, 3, 2, 4], 4) should return 1.
+pairwise([1, 1, 1], 2) should return 1.
+pairwise([0, 0, 0, 0, 1, 1], 1) should return 10.
+pairwise([], 100) should return 0.
+
+
+Remember to use Read-Search-Ask if you get stuck. Try to pair program. Write your own code.
+
+Here are some helpful links:
+
+Array.prototype.reduce()
+*/
+function pairwise(arr, arg) {
+ // Set sum of indices to zero
+ var sum = 0;
+ // make a local copy of the arguments object so we don't modify it directly
+ var pairArr = arr.slice();
+ // looping from first element
+ for(i = 0; i < pairArr.length; i++) {
+   //Looping from second element by setting first element  constant
+   for(j = i + 1; j < pairArr.length; j++) {
+     // Check whether the sum is equal to arg
+     if(pairArr[i] + pairArr[j] == arg) {
+       //Add the indices
+       sum += i + j;
+       //Set the indices to NaN so that they can't be used in next iteration
+       pairArr[i] = pairArr[j] = NaN;
+     }
+   }
+ }
+ return sum;
+}
+//============================================================================
